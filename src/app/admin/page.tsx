@@ -8,6 +8,7 @@ export default function AdminPage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [password, setPassword] = useState('');
   const [courses, setCourses] = useState<Course[]>([]);
+  const [isSaving, setIsSaving] = useState(false);
   
   const [showCreateCourse, setShowCreateCourse] = useState(false);
   const [editingCourse, setEditingCourse] = useState<Course | null>(null);
@@ -20,7 +21,7 @@ export default function AdminPage() {
 
   useEffect(() => {
     if (localStorage.getItem('admin_authenticated') === 'true') setIsAuthenticated(true);
-    setCourses(coursesData); // ЗАВАНТАЖЕННЯ ДАНИХ З ФАЙЛУ
+    setCourses(coursesData);
   }, []);
 
   const handleLogin = () => {
@@ -37,19 +38,46 @@ export default function AdminPage() {
     setNewCourse(emptyCourse);
   };
 
+  const updateCourse = () => {
+    if (!editingCourse) return;
+    setCourses(courses.map(c => (c.id === editingCourse.id ? editingCourse : c)));
+    setEditingCourse(null);
+  };
+
   const deleteCourse = (id: number) => {
     if (confirm('Видалити?')) setCourses(courses.filter(c => c.id !== id));
   };
 
-  const generateCode = () => {
-    const content = `export interface Course {
+  // --- АВТОМАТИЧНЕ ЗБЕРЕЖЕННЯ НА GITHUB ---
+  const saveToCloud = async () => {
+    setIsSaving(true);
+    try {
+      // Формуємо вміст файлу
+      const content = `export interface Course {
   id: number; title: string; price: number; image: string;
   isNew?: boolean; isDiscount?: boolean; isActive: boolean;
   category: string; description: string; sales: number;
 }
 export const coursesData: Course[] = ${JSON.stringify(courses, null, 2)};`;
-    navigator.clipboard.writeText(content);
-    alert('✅ КОД СКОПІЙОВАНО! Вставте його у src/lib/courses-data.ts на GitHub');
+
+      const response = await fetch('/api/admin/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content })
+      });
+
+      if (!response.ok) throw new Error('Помилка з\'єднання з сервером');
+      
+      const result = await response.json();
+      if (result.error) throw new Error(result.error);
+
+      alert('✅ УСПІХ! Дані відправлено на GitHub. Сайт оновиться автоматично за 1 хвилину.');
+    } catch (error: any) {
+      alert(`❌ Помилка: ${error.message}\nПеревірте ключі GitHub у налаштуваннях Netlify.`);
+      console.error(error);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   if (!isAuthenticated) return (
@@ -65,7 +93,7 @@ export const coursesData: Course[] = ${JSON.stringify(courses, null, 2)};`;
   return (
     <div className="min-h-screen bg-gray-100 pb-24">
       <div className="bg-white shadow p-4 mb-8 flex justify-between items-center">
-        <span className="text-xl font-bold">Адмін-Панель v2.0 (Автономна)</span>
+        <span className="text-xl font-bold">Адмін-Панель v3.0 (Автомат)</span>
         <Link href="/" className="text-blue-600">На сайт</Link>
       </div>
 
@@ -85,20 +113,28 @@ export const coursesData: Course[] = ${JSON.stringify(courses, null, 2)};`;
                   <div className="text-sm text-gray-500">{c.price} грн | {c.isActive ? 'Активний' : 'Прихований'}</div>
                 </div>
               </div>
-              <button onClick={() => deleteCourse(c.id)} className="text-red-600 border px-2 py-1 rounded">Видалити</button>
+              <div className="flex gap-2">
+                 <button onClick={() => setEditingCourse(c)} className="text-blue-600 border px-2 py-1 rounded">Ред.</button>
+                 <button onClick={() => deleteCourse(c.id)} className="text-red-600 border px-2 py-1 rounded">Вид.</button>
+              </div>
             </div>
           ))}
         </div>
       </div>
 
       <div className="fixed bottom-6 right-6">
-        <button onClick={generateCode} className="bg-yellow-600 text-white px-6 py-4 rounded-full shadow-2xl font-bold border-4 border-white hover:scale-105">
-          💾 ЗБЕРЕГТИ ЗМІНИ У ФАЙЛ
+        <button 
+          onClick={saveToCloud} 
+          disabled={isSaving}
+          className={`${isSaving ? 'bg-gray-500' : 'bg-green-600'} text-white px-6 py-4 rounded-full shadow-2xl font-bold border-4 border-white hover:scale-105 transition-transform flex items-center gap-2`}
+        >
+          {isSaving ? '⏳ ЗБЕРЕЖЕННЯ...' : '☁️ ОНОВИТИ САЙТ'}
         </button>
       </div>
 
+      {/* Модалка створення */}
       {showCreateCourse && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-white p-6 rounded w-96 space-y-3">
             <h3>Новий курс</h3>
             <input className="border w-full p-2" placeholder="Назва" value={newCourse.title} onChange={e => setNewCourse({...newCourse, title: e.target.value})} />
@@ -107,6 +143,23 @@ export const coursesData: Course[] = ${JSON.stringify(courses, null, 2)};`;
             <div className="flex justify-end gap-2">
               <button onClick={() => setShowCreateCourse(false)} className="text-gray-500">Скасувати</button>
               <button onClick={createCourse} className="bg-green-600 text-white px-4 py-2 rounded">Додати</button>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Модалка редагування */}
+      {editingCourse && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded w-[500px] space-y-3 max-h-[90vh] overflow-y-auto">
+            <h3>Редагування</h3>
+            <input className="border w-full p-2" placeholder="Назва" value={editingCourse.title} onChange={e => setEditingCourse({...editingCourse, title: e.target.value})} />
+            <textarea className="border w-full p-2" rows={5} placeholder="Опис" value={editingCourse.description} onChange={e => setEditingCourse({...editingCourse, description: e.target.value})} />
+            <input className="border w-full p-2" type="number" placeholder="Ціна" value={editingCourse.price} onChange={e => setEditingCourse({...editingCourse, price: +e.target.value})} />
+            <input className="border w-full p-2" placeholder="Фото URL" value={editingCourse.image} onChange={e => setEditingCourse({...editingCourse, image: e.target.value})} />
+            <div className="flex justify-end gap-2">
+              <button onClick={() => setEditingCourse(null)} className="text-gray-500">Скасувати</button>
+              <button onClick={updateCourse} className="bg-blue-600 text-white px-4 py-2 rounded">OK</button>
             </div>
           </div>
         </div>
