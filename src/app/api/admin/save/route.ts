@@ -1,51 +1,53 @@
 import { NextResponse } from 'next/server';
 
+const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
+const REPO_OWNER = process.env.REPO_OWNER;
+const REPO_NAME = process.env.REPO_NAME;
+const FILE_PATH = 'src/lib/courses-data.ts';
+
 export async function POST(request: Request) {
   try {
-    const body = await request.json();
-    const { content } = body;
+    const { courses } = await request.json();
 
-    const token = process.env.GITHUB_TOKEN;
-    const owner = process.env.GITHUB_OWNER;
-    const repo = process.env.GITHUB_REPO;
-    const path = 'src/lib/courses-data.ts';
-
-    if (!token || !owner || !repo) {
-      return NextResponse.json({ error: 'GitHub config missing' }, { status: 500 });
+    if (!GITHUB_TOKEN || !REPO_OWNER || !REPO_NAME) {
+      return NextResponse.json({ error: 'Missing GitHub config' }, { status: 500 });
     }
 
-    // 1. Отримуємо SHA поточного файлу (вимога GitHub для перезапису)
-    const getFile = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${path}`, {
-      headers: { Authorization: `Bearer ${token}` }
-    });
-    
-    if (!getFile.ok) throw new Error('File not found on GitHub');
-    
-    const fileData = await getFile.json();
+    // 1. Формуємо контент
+    const fileContent = `export const courses = ${JSON.stringify(courses, null, 2)};`;
+    const contentBase64 = Buffer.from(fileContent).toString('base64');
 
-    // 2. Оновлюємо файл
-    const updateResponse = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${path}`, {
+    // 2. Отримуємо SHA
+    const getFileUrl = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${FILE_PATH}`;
+    const getResponse = await fetch(getFileUrl, {
+      headers: { Authorization: `Bearer ${GITHUB_TOKEN}`, Accept: 'application/vnd.github.v3+json' },
+      cache: 'no-store',
+    });
+
+    if (!getResponse.ok) throw new Error('Failed to fetch SHA');
+    const fileData = await getResponse.json();
+
+    // 3. Коміт
+    const putResponse = await fetch(getFileUrl, {
       method: 'PUT',
       headers: {
-        Authorization: `Bearer ${token}`,
+        Authorization: `Bearer ${GITHUB_TOKEN}`,
+        Accept: 'application/vnd.github.v3+json',
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        message: 'Update courses via Admin Panel',
-        content: Buffer.from(content).toString('base64'), // Кодуємо в Base64
-        sha: fileData.sha
-      })
+        message: 'Admin Update',
+        content: contentBase64,
+        sha: fileData.sha,
+        branch: 'main',
+      }),
     });
 
-    if (!updateResponse.ok) {
-      const errText = await updateResponse.text();
-      throw new Error(`GitHub Error: ${errText}`);
-    }
+    if (!putResponse.ok) throw new Error('GitHub Update Failed');
 
     return NextResponse.json({ success: true });
-
   } catch (error: any) {
-    console.error(error);
+    console.error('Save API Error:', error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
