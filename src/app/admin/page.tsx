@@ -7,10 +7,15 @@ import { coursesData, Course } from '@/lib/courses-data';
 export default function AdminPage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [password, setPassword] = useState('');
+  const [activeTab, setActiveTab] = useState('dashboard');
+  
+  // ДАНІ
   const [courses, setCourses] = useState<Course[]>([]);
+  const [orders, setOrders] = useState<any[]>([]);
+  
+  // СТАНИ ДЛЯ КУРСІВ
   const [isSaving, setIsSaving] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
-  
   const [showCreateCourse, setShowCreateCourse] = useState(false);
   const [editingCourse, setEditingCourse] = useState<Course | null>(null);
   
@@ -20,9 +25,18 @@ export default function AdminPage() {
   };
   const [newCourse, setNewCourse] = useState(emptyCourse);
 
+  // ІНІЦІАЛІЗАЦІЯ
   useEffect(() => {
     if (localStorage.getItem('admin_authenticated') === 'true') setIsAuthenticated(true);
+    
+    // 1. Завантажуємо курси з файлу
     setCourses(coursesData);
+
+    // 2. Завантажуємо замовлення з пам'яті браузера
+    const savedOrders = localStorage.getItem('neurossoul_orders');
+    if (savedOrders) {
+      setOrders(JSON.parse(savedOrders));
+    }
   }, []);
 
   const handleLogin = () => {
@@ -32,30 +46,26 @@ export default function AdminPage() {
     } else alert('Невірний пароль!');
   };
 
-  // --- ЗАВАНТАЖЕННЯ ФОТО ---
+  const handleLogout = () => {
+    setIsAuthenticated(false);
+    localStorage.removeItem('admin_authenticated');
+  };
+
+  // --- ЛОГІКА КУРСІВ ---
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, target: 'new' | 'edit') => {
     const file = e.target.files?.[0];
     if (!file) return;
-
     setIsUploading(true);
     const formData = new FormData();
     formData.append('file', file);
-
     try {
       const res = await fetch('/api/admin/upload', { method: 'POST', body: formData });
       if (!res.ok) throw new Error('Upload failed');
       const data = await res.json();
-      
-      if (target === 'new') {
-        setNewCourse({ ...newCourse, image: data.url });
-      } else if (editingCourse) {
-        setEditingCourse({ ...editingCourse, image: data.url });
-      }
-    } catch (err) {
-      alert('Помилка завантаження. Перевірте розмір файлу.');
-    } finally {
-      setIsUploading(false);
-    }
+      if (target === 'new') setNewCourse({ ...newCourse, image: data.url });
+      else if (editingCourse) setEditingCourse({ ...editingCourse, image: data.url });
+    } catch (err) { alert('Помилка завантаження фото.'); } 
+    finally { setIsUploading(false); }
   };
 
   const createCourse = () => {
@@ -92,13 +102,16 @@ export const coursesData: Course[] = ${JSON.stringify(courses, null, 2)};`;
       });
 
       if (!response.ok) throw new Error('Error');
-      alert('✅ УСПІХ! Сайт оновлюється (зачекайте 1 хв).');
+      alert('✅ САЙТ ОНОВЛЕНО! Зміни з\'являться за 1 хвилину.');
     } catch (error) {
       alert('❌ Помилка збереження.');
     } finally {
       setIsSaving(false);
     }
   };
+
+  // --- СТАТИСТИКА ---
+  const totalRevenue = orders.reduce((sum, order) => sum + order.amount, 0);
 
   if (!isAuthenticated) return (
     <div className="flex h-screen items-center justify-center bg-gray-100">
@@ -112,91 +125,116 @@ export const coursesData: Course[] = ${JSON.stringify(courses, null, 2)};`;
 
   return (
     <div className="min-h-screen bg-gray-100 pb-24">
-      <div className="bg-white shadow p-4 mb-8 flex justify-between items-center">
-        <span className="text-xl font-bold">Адмін-Панель v4.0 (Фото + Автомат)</span>
-        <Link href="/" className="text-blue-600">На сайт</Link>
+      {/* HEADER */}
+      <div className="bg-white shadow p-4 flex justify-between items-center sticky top-0 z-40">
+        <span className="text-xl font-bold">Адмінка v5.0 (Full)</span>
+        <div className="flex gap-4">
+          <Link href="/" className="text-blue-600">На сайт</Link>
+          <button onClick={handleLogout} className="text-red-600">Вийти</button>
+        </div>
       </div>
 
-      <div className="max-w-6xl mx-auto px-4">
-        <div className="flex justify-between mb-6">
-          <h2 className="text-2xl font-bold">Курси: {courses.length}</h2>
-          <button onClick={() => setShowCreateCourse(true)} className="bg-green-600 text-white px-4 py-2 rounded">+ Додати</button>
-        </div>
-
-        <div className="grid gap-4">
-          {courses.map(c => (
-            <div key={c.id} className="bg-white p-4 rounded shadow flex justify-between items-center">
-              <div className="flex items-center gap-4">
-                <img src={c.image} className="w-16 h-16 object-cover rounded bg-gray-200" onError={(e)=>{e.currentTarget.src='https://placehold.co/100'}}/>
-                <div>
-                  <div className="font-bold">{c.title}</div>
-                  <div className="text-sm text-gray-500">{c.price} грн | {c.isActive ? 'Активний' : 'Прихований'}</div>
-                </div>
-              </div>
-              <div className="flex gap-2">
-                 <button onClick={() => setEditingCourse(c)} className="text-blue-600 border px-2 py-1 rounded">Ред.</button>
-                 <button onClick={() => deleteCourse(c.id)} className="text-red-600 border px-2 py-1 rounded">Вид.</button>
-              </div>
-            </div>
+      <div className="max-w-7xl mx-auto px-4 py-6">
+        {/* TABS */}
+        <div className="flex gap-6 border-b mb-6">
+          {['dashboard', 'orders', 'courses', 'settings'].map(tab => (
+            <button 
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={`pb-2 px-2 uppercase font-bold text-sm ${activeTab === tab ? 'border-b-2 border-yellow-600 text-yellow-700' : 'text-gray-500'}`}
+            >
+              {tab === 'dashboard' ? 'Дашборд' : tab === 'orders' ? 'Замовлення' : tab === 'courses' ? 'Курси' : 'Налаштування'}
+            </button>
           ))}
         </div>
-      </div>
 
-      <div className="fixed bottom-6 right-6">
-        <button onClick={saveToCloud} disabled={isSaving} className={`${isSaving ? 'bg-gray-500' : 'bg-green-600'} text-white px-6 py-4 rounded-full shadow-2xl font-bold border-4 border-white hover:scale-105 flex items-center gap-2`}>
-          {isSaving ? '⏳ ЗБЕРЕЖЕННЯ...' : '☁️ ОНОВИТИ САЙТ'}
-        </button>
-      </div>
-
-      {/* СТВОРЕННЯ */}
-      {showCreateCourse && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded w-96 space-y-3">
-            <h3>Новий курс</h3>
-            <input className="border w-full p-2" placeholder="Назва" value={newCourse.title} onChange={e => setNewCourse({...newCourse, title: e.target.value})} />
-            <input className="border w-full p-2" type="number" placeholder="Ціна" value={newCourse.price || ''} onChange={e => setNewCourse({...newCourse, price: +e.target.value})} />
-            
-            {/* БЛОК ФОТО */}
-            <div className="border p-2 rounded bg-gray-50">
-              <label className="block text-sm text-gray-500 mb-1">Фото курсу:</label>
-              <input type="file" accept="image/*" onChange={(e) => handleFileUpload(e, 'new')} className="mb-2 w-full text-sm" />
-              {isUploading && <div className="text-blue-500 text-xs">Завантаження...</div>}
-              <input className="border w-full p-2 text-xs bg-white" placeholder="URL з'явиться тут" value={newCourse.image} readOnly />
+        {/* === DASHBOARD === */}
+        {activeTab === 'dashboard' && (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="bg-white p-6 rounded shadow border-l-4 border-green-500">
+              <div className="text-gray-500">Дохід (WayForPay)</div>
+              <div className="text-3xl font-bold">₴{totalRevenue}</div>
             </div>
-
-            <div className="flex justify-end gap-2">
-              <button onClick={() => setShowCreateCourse(false)} className="text-gray-500">Скасувати</button>
-              <button onClick={createCourse} className="bg-green-600 text-white px-4 py-2 rounded">Додати</button>
+            <div className="bg-white p-6 rounded shadow border-l-4 border-blue-500">
+              <div className="text-gray-500">Замовлень</div>
+              <div className="text-3xl font-bold">{orders.length}</div>
+            </div>
+            <div className="bg-white p-6 rounded shadow border-l-4 border-purple-500">
+              <div className="text-gray-500">Активних курсів</div>
+              <div className="text-3xl font-bold">{courses.filter(c => c.isActive).length}</div>
             </div>
           </div>
-        </div>
-      )}
-      
-      {/* РЕДАГУВАННЯ */}
-      {editingCourse && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded w-[500px] space-y-3 max-h-[90vh] overflow-y-auto">
-            <h3>Редагування</h3>
-            <input className="border w-full p-2" value={editingCourse.title} onChange={e => setEditingCourse({...editingCourse, title: e.target.value})} />
-            <textarea className="border w-full p-2" rows={5} placeholder="Опис" value={editingCourse.description} onChange={e => setEditingCourse({...editingCourse, description: e.target.value})} />
-            <input className="border w-full p-2" type="number" value={editingCourse.price} onChange={e => setEditingCourse({...editingCourse, price: +e.target.value})} />
-            
-            {/* БЛОК ФОТО */}
-            <div className="border p-2 rounded bg-gray-50">
-              <label className="block text-sm text-gray-500 mb-1">Змінити фото:</label>
-              <input type="file" accept="image/*" onChange={(e) => handleFileUpload(e, 'edit')} className="mb-2 w-full text-sm" />
-              {isUploading && <div className="text-blue-500 text-xs">Завантаження...</div>}
-              <input className="border w-full p-2 text-xs bg-white" value={editingCourse.image} readOnly />
-              {editingCourse.image && <img src={editingCourse.image} className="h-20 mt-2 rounded" />}
-            </div>
+        )}
 
-            <div className="flex justify-end gap-2">
-              <button onClick={() => setEditingCourse(null)} className="text-gray-500">Скасувати</button>
-              <button onClick={updateCourse} className="bg-blue-600 text-white px-4 py-2 rounded">OK</button>
+        {/* === ORDERS === */}
+        {activeTab === 'orders' && (
+          <div className="bg-white rounded shadow overflow-hidden">
+            {orders.length === 0 ? (
+              <div className="p-8 text-center text-gray-500">Замовлень поки немає</div>
+            ) : (
+              <table className="w-full text-left">
+                <thead className="bg-gray-50 border-b">
+                  <tr>
+                    <th className="p-3">ID</th>
+                    <th className="p-3">Дата</th>
+                    <th className="p-3">Сума</th>
+                    <th className="p-3">Статус</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {orders.map((order, i) => (
+                    <tr key={i} className="border-b hover:bg-gray-50">
+                      <td className="p-3 font-mono text-sm">{order.orderReference || `ORDER-${order.id}`}</td>
+                      <td className="p-3 text-sm">{new Date(order.createdDate || Date.now()).toLocaleString()}</td>
+                      <td className="p-3 font-bold text-yellow-600">₴{order.amount}</td>
+                      <td className="p-3"><span className="bg-green-100 text-green-800 px-2 py-1 rounded text-xs">Створено</span></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+        )}
+
+        {/* === COURSES === */}
+        {activeTab === 'courses' && (
+          <div>
+            <div className="flex justify-between mb-6">
+              <h2 className="text-xl font-bold">Список курсів</h2>
+              <button onClick={() => setShowCreateCourse(true)} className="bg-green-600 text-white px-4 py-2 rounded shadow hover:bg-green-700">+ Додати курс</button>
+            </div>
+            <div className="grid gap-4">
+              {courses.map(c => (
+                <div key={c.id} className="bg-white p-4 rounded shadow flex gap-4 items-start">
+                  <img src={c.image} className="w-24 h-24 object-cover rounded bg-gray-200" onError={(e:any)=>{e.target.src='https://placehold.co/100'}}/>
+                  <div className="flex-1">
+                    <div className="flex justify-between">
+                      <h3 className="font-bold text-lg">{c.title}</h3>
+                      <div className="flex gap-2">
+                        <button onClick={() => setEditingCourse(c)} className="text-blue-600 border px-3 py-1 rounded hover:bg-blue-50">Ред.</button>
+                        <button onClick={() => deleteCourse(c.id)} className="text-red-600 border px-3 py-1 rounded hover:bg-red-50">Вид.</button>
+                      </div>
+                    </div>
+                    <div className="mt-2 text-sm text-gray-600">
+                      Ціна: <span className="font-bold text-black">{c.price} грн</span> | 
+                      Статус: <span className={c.isActive ? 'text-green-600' : 'text-red-600'}>{c.isActive ? 'Активний' : 'Прихований'}</span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            {/* КНОПКА ЗБЕРЕЖЕННЯ */}
+            <div className="fixed bottom-6 right-6">
+              <button onClick={saveToCloud} disabled={isSaving} className={`${isSaving ? 'bg-gray-500' : 'bg-green-600'} text-white px-6 py-4 rounded-full shadow-2xl font-bold border-4 border-white hover:scale-105 flex items-center gap-2 transition-all`}>
+                {isSaving ? '⏳ ЗБЕРЕЖЕННЯ...' : '☁️ ОНОВИТИ САЙТ'}
+              </button>
             </div>
           </div>
-        </div>
-      )}
-    </div>
-  );
-}
+        )}
+
+        {/* === SETTINGS === */}
+        {activeTab === 'settings' && (
+          <div className="bg-white p-8 rounded shadow text-center">
+            <h3 className="text-lg font-bold mb-2">Налаштування ключів</h3>
+            <p className="text-gray-600 mb-4">Ключі WayForPay та GitHub налаштовуються через панель Netlify (Environment Variables).</p>
+            <a href="https://app.netlify.
