@@ -9,6 +9,7 @@ export default function AdminPage() {
   const [password, setPassword] = useState('');
   const [courses, setCourses] = useState<Course[]>([]);
   const [isSaving, setIsSaving] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
   
   const [showCreateCourse, setShowCreateCourse] = useState(false);
   const [editingCourse, setEditingCourse] = useState<Course | null>(null);
@@ -31,6 +32,32 @@ export default function AdminPage() {
     } else alert('Невірний пароль!');
   };
 
+  // --- ЗАВАНТАЖЕННЯ ФОТО ---
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, target: 'new' | 'edit') => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploading(true);
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      const res = await fetch('/api/admin/upload', { method: 'POST', body: formData });
+      if (!res.ok) throw new Error('Upload failed');
+      const data = await res.json();
+      
+      if (target === 'new') {
+        setNewCourse({ ...newCourse, image: data.url });
+      } else if (editingCourse) {
+        setEditingCourse({ ...editingCourse, image: data.url });
+      }
+    } catch (err) {
+      alert('Помилка завантаження. Перевірте розмір файлу.');
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
   const createCourse = () => {
     const maxId = Math.max(...courses.map(c => c.id), 0);
     setCourses([...courses, { ...newCourse, id: maxId + 1 }]);
@@ -48,11 +75,9 @@ export default function AdminPage() {
     if (confirm('Видалити?')) setCourses(courses.filter(c => c.id !== id));
   };
 
-  // --- АВТОМАТИЧНЕ ЗБЕРЕЖЕННЯ НА GITHUB ---
   const saveToCloud = async () => {
     setIsSaving(true);
     try {
-      // Формуємо вміст файлу
       const content = `export interface Course {
   id: number; title: string; price: number; image: string;
   isNew?: boolean; isDiscount?: boolean; isActive: boolean;
@@ -66,15 +91,10 @@ export const coursesData: Course[] = ${JSON.stringify(courses, null, 2)};`;
         body: JSON.stringify({ content })
       });
 
-      if (!response.ok) throw new Error('Помилка з\'єднання з сервером');
-      
-      const result = await response.json();
-      if (result.error) throw new Error(result.error);
-
-      alert('✅ УСПІХ! Дані відправлено на GitHub. Сайт оновиться автоматично за 1 хвилину.');
-    } catch (error: any) {
-      alert(`❌ Помилка: ${error.message}\nПеревірте ключі GitHub у налаштуваннях Netlify.`);
-      console.error(error);
+      if (!response.ok) throw new Error('Error');
+      alert('✅ УСПІХ! Сайт оновлюється (зачекайте 1 хв).');
+    } catch (error) {
+      alert('❌ Помилка збереження.');
     } finally {
       setIsSaving(false);
     }
@@ -93,7 +113,7 @@ export const coursesData: Course[] = ${JSON.stringify(courses, null, 2)};`;
   return (
     <div className="min-h-screen bg-gray-100 pb-24">
       <div className="bg-white shadow p-4 mb-8 flex justify-between items-center">
-        <span className="text-xl font-bold">Адмін-Панель v3.0 (Автомат)</span>
+        <span className="text-xl font-bold">Адмін-Панель v4.0 (Фото + Автомат)</span>
         <Link href="/" className="text-blue-600">На сайт</Link>
       </div>
 
@@ -123,23 +143,27 @@ export const coursesData: Course[] = ${JSON.stringify(courses, null, 2)};`;
       </div>
 
       <div className="fixed bottom-6 right-6">
-        <button 
-          onClick={saveToCloud} 
-          disabled={isSaving}
-          className={`${isSaving ? 'bg-gray-500' : 'bg-green-600'} text-white px-6 py-4 rounded-full shadow-2xl font-bold border-4 border-white hover:scale-105 transition-transform flex items-center gap-2`}
-        >
+        <button onClick={saveToCloud} disabled={isSaving} className={`${isSaving ? 'bg-gray-500' : 'bg-green-600'} text-white px-6 py-4 rounded-full shadow-2xl font-bold border-4 border-white hover:scale-105 flex items-center gap-2`}>
           {isSaving ? '⏳ ЗБЕРЕЖЕННЯ...' : '☁️ ОНОВИТИ САЙТ'}
         </button>
       </div>
 
-      {/* Модалка створення */}
+      {/* СТВОРЕННЯ */}
       {showCreateCourse && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-white p-6 rounded w-96 space-y-3">
             <h3>Новий курс</h3>
             <input className="border w-full p-2" placeholder="Назва" value={newCourse.title} onChange={e => setNewCourse({...newCourse, title: e.target.value})} />
             <input className="border w-full p-2" type="number" placeholder="Ціна" value={newCourse.price || ''} onChange={e => setNewCourse({...newCourse, price: +e.target.value})} />
-            <input className="border w-full p-2" placeholder="Фото URL" value={newCourse.image} onChange={e => setNewCourse({...newCourse, image: e.target.value})} />
+            
+            {/* БЛОК ФОТО */}
+            <div className="border p-2 rounded bg-gray-50">
+              <label className="block text-sm text-gray-500 mb-1">Фото курсу:</label>
+              <input type="file" accept="image/*" onChange={(e) => handleFileUpload(e, 'new')} className="mb-2 w-full text-sm" />
+              {isUploading && <div className="text-blue-500 text-xs">Завантаження...</div>}
+              <input className="border w-full p-2 text-xs bg-white" placeholder="URL з'явиться тут" value={newCourse.image} readOnly />
+            </div>
+
             <div className="flex justify-end gap-2">
               <button onClick={() => setShowCreateCourse(false)} className="text-gray-500">Скасувати</button>
               <button onClick={createCourse} className="bg-green-600 text-white px-4 py-2 rounded">Додати</button>
@@ -148,15 +172,24 @@ export const coursesData: Course[] = ${JSON.stringify(courses, null, 2)};`;
         </div>
       )}
       
-      {/* Модалка редагування */}
+      {/* РЕДАГУВАННЯ */}
       {editingCourse && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-white p-6 rounded w-[500px] space-y-3 max-h-[90vh] overflow-y-auto">
             <h3>Редагування</h3>
-            <input className="border w-full p-2" placeholder="Назва" value={editingCourse.title} onChange={e => setEditingCourse({...editingCourse, title: e.target.value})} />
+            <input className="border w-full p-2" value={editingCourse.title} onChange={e => setEditingCourse({...editingCourse, title: e.target.value})} />
             <textarea className="border w-full p-2" rows={5} placeholder="Опис" value={editingCourse.description} onChange={e => setEditingCourse({...editingCourse, description: e.target.value})} />
-            <input className="border w-full p-2" type="number" placeholder="Ціна" value={editingCourse.price} onChange={e => setEditingCourse({...editingCourse, price: +e.target.value})} />
-            <input className="border w-full p-2" placeholder="Фото URL" value={editingCourse.image} onChange={e => setEditingCourse({...editingCourse, image: e.target.value})} />
+            <input className="border w-full p-2" type="number" value={editingCourse.price} onChange={e => setEditingCourse({...editingCourse, price: +e.target.value})} />
+            
+            {/* БЛОК ФОТО */}
+            <div className="border p-2 rounded bg-gray-50">
+              <label className="block text-sm text-gray-500 mb-1">Змінити фото:</label>
+              <input type="file" accept="image/*" onChange={(e) => handleFileUpload(e, 'edit')} className="mb-2 w-full text-sm" />
+              {isUploading && <div className="text-blue-500 text-xs">Завантаження...</div>}
+              <input className="border w-full p-2 text-xs bg-white" value={editingCourse.image} readOnly />
+              {editingCourse.image && <img src={editingCourse.image} className="h-20 mt-2 rounded" />}
+            </div>
+
             <div className="flex justify-end gap-2">
               <button onClick={() => setEditingCourse(null)} className="text-gray-500">Скасувати</button>
               <button onClick={updateCourse} className="bg-blue-600 text-white px-4 py-2 rounded">OK</button>
