@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server';
 import crypto from 'crypto';
 
-const MERCHANT_LOGIN = process.env.NEXT_PUBLIC_WAYFORPAY_MERCHANT;
-const MERCHANT_SECRET = process.env.WAYFORPAY_SECRET;
+const MERCHANT_LOGIN = process.env.WFP_LOGIN;   // Твоя змінна
+const MERCHANT_SECRET = process.env.WFP_SECRET; // Твоя змінна
 
 export async function POST(request: Request) {
   try {
@@ -15,8 +15,15 @@ export async function POST(request: Request) {
     const { merchantDomainName, orderReference, orderDate, amount, currency, productName, productCount, productPrice } = body;
 
     const signatureString = [
-      MERCHANT_LOGIN, merchantDomainName, orderReference, orderDate, String(amount), currency,
-      productName.join(';'), productCount.join(';'), productPrice.join(';')
+      MERCHANT_LOGIN, 
+      merchantDomainName, 
+      orderReference, 
+      orderDate, 
+      String(amount), 
+      currency,
+      productName.join(';'), 
+      productCount.join(';'), 
+      productPrice.join(';')
     ].join(';');
 
     const signature = crypto.createHmac('md5', MERCHANT_SECRET).update(signatureString).digest('hex');
