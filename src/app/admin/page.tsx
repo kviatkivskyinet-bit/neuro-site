@@ -196,7 +196,7 @@ export const coursesData: Course[] = ${JSON.stringify(courses, null, 2)};`;
           </div>
         )}
 
-        {/* === COURSES === */}
+        {/* === COURSES (Наша робоча конячка) === */}
         {activeTab === 'courses' && (
           <div>
             <div className="flex justify-between mb-6">
@@ -237,4 +237,77 @@ export const coursesData: Course[] = ${JSON.stringify(courses, null, 2)};`;
           <div className="bg-white p-8 rounded shadow text-center">
             <h3 className="text-lg font-bold mb-2">Налаштування ключів</h3>
             <p className="text-gray-600 mb-4">Ключі WayForPay та GitHub налаштовуються через панель Netlify (Environment Variables).</p>
-            <a href="https://app.netlify.
+            <a href="https://app.netlify.com" target="_blank" className="text-blue-600 underline">Перейти в Netlify</a>
+          </div>
+        )}
+      </div>
+
+      {/* МОДАЛКИ (Створення / Редагування) */}
+      {(showCreateCourse || editingCourse) && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white p-6 rounded w-full max-w-lg max-h-[90vh] overflow-y-auto shadow-2xl">
+            <h3 className="text-xl font-bold mb-4">{showCreateCourse ? 'Новий курс' : 'Редагування'}</h3>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm text-gray-600 mb-1">Назва</label>
+                <input className="border w-full p-2 rounded" 
+                  value={showCreateCourse ? newCourse.title : editingCourse?.title} 
+                  onChange={e => showCreateCourse ? setNewCourse({...newCourse, title: e.target.value}) : editingCourse && setEditingCourse({...editingCourse, title: e.target.value})} 
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm text-gray-600 mb-1">Ціна (грн)</label>
+                <input type="number" className="border w-full p-2 rounded" 
+                  value={showCreateCourse ? newCourse.price : editingCourse?.price} 
+                  onChange={e => showCreateCourse ? setNewCourse({...newCourse, price: +e.target.value}) : editingCourse && setEditingCourse({...editingCourse, price: +e.target.value})} 
+                />
+              </div>
+
+              <div className="bg-gray-50 p-3 rounded border">
+                <label className="block text-sm text-gray-600 mb-2">Фото курсу</label>
+                <input type="file" accept="image/*" onChange={(e) => handleFileUpload(e, showCreateCourse ? 'new' : 'edit')} className="w-full text-sm" />
+                {isUploading && <div className="text-blue-500 text-sm mt-1">Завантаження на сервер...</div>}
+                <input className="border w-full p-2 mt-2 text-xs bg-white text-gray-500" readOnly 
+                  value={showCreateCourse ? newCourse.image : editingCourse?.image} placeholder="URL з'явиться тут автоматично" 
+                />
+                {(showCreateCourse ? newCourse.image : editingCourse?.image) && (
+                  <img src={showCreateCourse ? newCourse.image : editingCourse?.image} className="h-24 mt-2 rounded object-cover" />
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm text-gray-600 mb-1">Опис</label>
+                <textarea className="border w-full p-2 rounded" rows={4} 
+                  value={showCreateCourse ? newCourse.description : editingCourse?.description} 
+                  onChange={e => showCreateCourse ? setNewCourse({...newCourse, description: e.target.value}) : editingCourse && setEditingCourse({...editingCourse, description: e.target.value})} 
+                />
+              </div>
+
+              <div className="flex gap-4">
+                 <label className="flex items-center gap-2">
+                    <input type="checkbox" checked={showCreateCourse ? newCourse.isActive : editingCourse?.isActive} 
+                      onChange={e => showCreateCourse ? setNewCourse({...newCourse, isActive: e.target.checked}) : editingCourse && setEditingCourse({...editingCourse, isActive: e.target.checked})} 
+                    /> Активний
+                 </label>
+                 <label className="flex items-center gap-2">
+                    <input type="checkbox" checked={showCreateCourse ? newCourse.isNew : editingCourse?.isNew} 
+                      onChange={e => showCreateCourse ? setNewCourse({...newCourse, isNew: e.target.checked}) : editingCourse && setEditingCourse({...editingCourse, isNew: e.target.checked})} 
+                    /> Новинка
+                 </label>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-3 mt-6 pt-4 border-t">
+              <button onClick={() => {setShowCreateCourse(false); setEditingCourse(null)}} className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded">Скасувати</button>
+              <button onClick={showCreateCourse ? createCourse : updateCourse} className="bg-green-600 text-white px-6 py-2 rounded hover:bg-green-700 font-bold">
+                {showCreateCourse ? 'Додати' : 'Зберегти'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
