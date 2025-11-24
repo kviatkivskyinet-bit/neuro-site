@@ -35,17 +35,16 @@
   }
 
  
-}
-
 @layer base {
   * {
     @apply border-border;
   }
   body {
     @apply bg-background text-foreground;
-    background: linear-gradient(135deg, #0a0a0a 0%, #1a0f1f 50%, #0f0a1a 100%);
+    background: linear-gradient(135deg, #fafafa 0%, #f4f4f5 50%, #f9fafb 100%);
     min-height: 100vh;
-    position: relative;
+  }
+}
   }
   
   /* Animated background particles */
