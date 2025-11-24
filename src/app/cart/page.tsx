@@ -201,7 +201,7 @@ export default function CartPage() {
 
       document.body.appendChild(form);
       form.submit();
-    } catch (e) { alert('Помилка оплати'); }
+    
   };
 
   if (!isClient) return <div>Loading...</div>;
