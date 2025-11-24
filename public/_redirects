@@ -1,0 +1,6 @@
+# Redirect all requests to the Next.js handler
+/*    /index.html   200
+
+# Handle specific routes
+/course/*  /index.html  200
+/shop      /index.html  200
