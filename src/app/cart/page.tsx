@@ -388,7 +388,7 @@ export default function CartPage() {
     </div>
   );
 }
-'use client';
+
 
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
