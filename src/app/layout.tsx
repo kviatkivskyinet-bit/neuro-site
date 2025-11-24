@@ -1,14 +1,21 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import Header from "../components/Header";
-import Footer from "../components/Footer";
+import ClientBody from "./ClientBody";
 
-const inter = Inter({ subsets: ["latin"] });
+const geistSans = Geist({
+  variable: "--font-geist-sans",
+  subsets: ["latin"],
+});
+
+const geistMono = Geist_Mono({
+  variable: "--font-geist-mono",
+  subsets: ["latin"],
+});
 
 export const metadata: Metadata = {
-  title: "NeuroSoul Doctor - Трансформація свідомості",
-  description: "Експерт у сфері гіпнотерапії та психології впливу",
+  title: "NeuroSoul Doctor",
+  description: "Курси що змінюють свідомість",
 };
 
 export default function RootLayout({
@@ -17,13 +24,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="uk" className="scroll-smooth">
-      <body className={inter.className}>
-        <Header />
-        <main className="min-h-screen pt-16">
-          {children}
-        </main>
-        <Footer />
+    <html lang="en" className={`${geistSans.variable} ${geistMono.variable}`}>
+      <body suppressHydrationWarning className="antialiased">
+        <ClientBody>{children}</ClientBody>
       </body>
     </html>
   );
