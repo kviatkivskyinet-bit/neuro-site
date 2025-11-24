@@ -1,69 +1,52 @@
 'use client';
 
 import Link from 'next/link';
+import { useEffect, useState } from 'react';
 
-export default function Footer() {
-  // Статичні посилання на соцмережі
-  const socialMedia = [
-    { id: "telegram", name: "Telegram", url: "https://t.me/NeuroSoulDoctor", icon: "telegram" },
-    { id: "tiktok", name: "TikTok", url: "https://www.tiktok.com/@souldoctor58", icon: "tiktok" }
-  ];
+export default function Header() {
+  const [cartCount, setCartCount] = useState(0);
+
+  useEffect(() => {
+    const updateCount = () => {
+      const cart = JSON.parse(localStorage.getItem('cart') || '[]');
+      const totalItems = cart.reduce((sum: number, item: any) => sum + (item.quantity || 1), 0);
+      setCartCount(totalItems);
+    };
+
+    updateCount();
+    window.addEventListener('storage', updateCount);
+    window.addEventListener('cart-updated', updateCount);
+
+    return () => {
+      window.removeEventListener('storage', updateCount);
+      window.removeEventListener('cart-updated', updateCount);
+    };
+  }, []);
 
   return (
-    <footer className="bg-gray-900 text-white py-12 px-4">
-      <div className="max-w-7xl mx-auto">
-        <div className="grid md:grid-cols-3 gap-8">
-          {/* BRAND */}
-          <div className="space-y-4">
-            <div className="flex items-center space-x-4">
-              <h3 className="text-2xl font-bold text-white bg-clip-text text-transparent bg-gradient-to-r from-amber-500 to-yellow-300">
-                NEUROSSOUL DOCTOR
-              </h3>
-            </div>
-            <p className="text-gray-400">
-              Експерт у сфері гіпнотерапії та трансформації свідомості
-            </p>
-             <Link href="/admin" className="inline-block bg-gray-800 text-gray-500 px-3 py-1 rounded text-xs hover:text-white transition-colors">
-                Вхід для власника
-             </Link>
-          </div>
+    <nav className="fixed top-0 w-full bg-white/90 backdrop-blur-md border-b border-gray-200 z-50">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex justify-between items-center h-16">
+          <Link href="/" className="flex items-center space-x-4">
+            <h1 className="text-xl md:text-2xl font-bold text-amber-600">
+              NEUROSSOUL DOCTOR
+            </h1>
+          </Link>
 
-          {/* LINKS */}
-          <div className="space-y-4">
-            <h4 className="text-lg font-semibold text-amber-500">Корисні посилання</h4>
-            <div className="space-y-2">
-              <button onClick={() => alert('Незабаром')} className="text-gray-400 hover:text-yellow-400 block transition-colors text-left">
-                Публічна оферта
-              </button>
-              <button onClick={() => alert('Незабаром')} className="text-gray-400 hover:text-yellow-400 block transition-colors text-left">
-                Правова інформація
-              </button>
-            </div>
+          <div className="hidden md:flex space-x-8 items-center">
+            <Link href="/" className="text-gray-700 hover:text-amber-600 font-medium">Головна</Link>
+            <Link href="/shop" className="text-gray-700 hover:text-amber-600 font-medium">Курси</Link>
+            <Link href="/cart" className="relative p-2 text-gray-700 hover:text-amber-600">
+              🛒
+              {cartCount > 0 && (
+                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-bold">
+                  {cartCount}
+                </span>
+              )}
+            </Link>
           </div>
-
-          {/* CONTACTS */}
-          <div className="space-y-4">
-            <h4 className="text-lg font-semibold text-amber-500">Контакти</h4>
-            <div className="flex space-x-4">
-              {socialMedia.map((social) => (
-                <a
-                  key={social.id}
-                  href={social.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-gray-400 hover:text-yellow-400 transition-colors"
-                >
-                  {social.name}
-                </a>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        <div className="border-t border-gray-800 mt-8 pt-8 text-center text-gray-500 text-sm">
-          <p>© 2025 NeuroSoul Doctor. All rights reserved.</p>
         </div>
       </div>
-    </footer>
+    </nav>
   );
 }
