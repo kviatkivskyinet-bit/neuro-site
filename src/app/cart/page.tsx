@@ -50,7 +50,7 @@ export default function CartPage() {
       const existingOrders = JSON.parse(localStorage.getItem('orders') || '[]');
       localStorage.setItem('orders', JSON.stringify([newOrder, ...existingOrders]));
 
-      // Get payment signature
+      // Get payment signature from API
       const res = await fetch('/api/wayforpay', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -104,7 +104,6 @@ export default function CartPage() {
     } catch (error) {
       console.error('Payment error:', error);
       alert('Помилка оплати. Спробуйте пізніше.');
-    } finally {
       setIsProcessing(false);
     }
   };
@@ -191,41 +190,6 @@ export default function CartPage() {
               <p className="text-center text-gray-500 mt-4 text-sm">
                 Безпечна оплата через WayForPay
               </p>
-            </div>
-          </>
-        )}
-      </div>
-    </div>
-  );
-}
-
-      document.body.appendChild(form);
-      form.submit();
-    
-  };
-
-  if (!isClient) return <div>Loading...</div>;
-
-  return (
-    <div className="min-h-screen bg-gray-50 pt-24 px-4">
-      <div className="max-w-4xl mx-auto bg-white p-8 rounded shadow">
-        <h1 className="text-2xl font-bold mb-6">Кошик</h1>
-        {cart.length === 0 ? <p>Пусто. <Link href="/shop" className="text-blue-500">В магазин</Link></p> : (
-          <>
-            {cart.map(item => (
-              <div key={item.id} className="flex justify-between items-center border-b py-4">
-                <div><b>{item.title}</b><br/>{item.price} грн</div>
-                <div className="flex items-center gap-2">
-                  <button onClick={() => updateQty(item.id, -1)} className="px-2 border">-</button>
-                  {item.quantity}
-                  <button onClick={() => updateQty(item.id, 1)} className="px-2 border">+</button>
-                  <button onClick={() => removeItem(item.id)} className="text-red-500 ml-2">✕</button>
-                </div>
-              </div>
-            ))}
-            <div className="mt-6 flex justify-between items-center">
-              <div className="text-xl font-bold">Всього: {cart.reduce((s, i) => s + i.price * i.quantity, 0)} грн</div>
-              <button onClick={handlePayment} className="bg-green-600 text-white px-6 py-3 rounded hover:bg-green-700">ОПЛАТИТИ</button>
             </div>
           </>
         )}
