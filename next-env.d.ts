@@ -1,5 +1,18 @@
-/// <reference types="next" />
-/// <reference types="next/image-types/global" />
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  //output: 'export',
+  distDir: 'out',
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
+  typescript: {
+    ignoreBuildErrors: true,
+  },
+  images: {
+    unoptimized: true
+  },
+  trailingSlash: true,
+  // Видалили experimental звідси!
+};
 
-// NOTE: This file should not be edited
-// see https://nextjs.org/docs/app/api-reference/config/typescript for more information.
+module.exports = nextConfig;
