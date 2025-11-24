@@ -1,6 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   //output: 'export',
+  distDir: 'out',
   eslint: {
     ignoreDuringBuilds: true,
   },
@@ -11,6 +12,10 @@ const nextConfig = {
     unoptimized: true
   },
   trailingSlash: true,
+  // Disable server-side features for static export
+  experimental: {
+    missingSuspenseWithCSRBailout: false,
+  }
 };
 
 module.exports = nextConfig;
