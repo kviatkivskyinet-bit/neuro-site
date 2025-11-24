@@ -33,8 +33,8 @@
     --blue-dark: #1E3A8A;
     --cream: #F5F5DC;
   }
+}
 
- 
 @layer base {
   * {
     @apply border-border;
@@ -45,24 +45,6 @@
     min-height: 100vh;
   }
 }
-  }
-  
-  /* Animated background particles */
-  body::before {
-    content: '';
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-image: 
-      radial-gradient(circle at 20% 80%, rgba(0, 255, 136, 0.1) 0%, transparent 50%),
-      radial-gradient(circle at 80% 20%, rgba(204, 0, 255, 0.1) 0%, transparent 50%),
-      radial-gradient(circle at 40% 40%, rgba(0, 204, 255, 0.1) 0%, transparent 50%);
-    pointer-events: none;
-    z-index: 0;
-  }
-}
 
 /* 3D Effects */
 .card-3d {
@@ -71,102 +53,4 @@
 }
 
 .card-3d:hover {
-  transform: translateY(-10px) rotateX(5deg) rotateY(5deg);
-  box-shadow:
-    0 25px 50px -12px rgba(212, 175, 55, 0.25),
-    0 0 0 1px rgba(212, 175, 55, 0.1);
-}
-
-.golden-gradient {
-  background: linear-gradient(135deg, var(--gold) 0%, #FFA500 25%, #FF8C00 50%, var(--gold-dark) 75%, #B8860B 100%);
-  background-size: 300% 300%;
-  animation: gradientShift 6s ease infinite;
-}
-
-@keyframes gradientShift {
-  0%, 100% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-}
-
-.text-3d {
-  text-shadow:
-    0 1px 0 #ccc,
-    0 2px 0 #c9c9c9,
-    0 3px 0 #bbb,
-    0 4px 0 #b9b9b9,
-    0 5px 0 #aaa,
-    0 6px 1px rgba(0,0,0,.1),
-    0 0 5px rgba(0,0,0,.1),
-    0 1px 3px rgba(0,0,0,.3),
-    0 3px 5px rgba(0,0,0,.2),
-    0 5px 10px rgba(0,0,0,.25);
-}
-
-.golden-text {
-  background: linear-gradient(135deg, var(--gold), #FFA500, #FF8C00);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  font-weight: 700;
-}
-
-/* Dark Headings without shadows */
-.dark-3d-heading {
-  font-family: 'Inter', system-ui, sans-serif;
-  font-weight: 700;
-  color: #4a4a4a;
-  letter-spacing: -0.02em;
-  line-height: 1.1;
-}
-
-.dark-3d-heading-large {
-  font-size: 3.5rem;
-  font-weight: 800;
-  color: #4a4a4a;
-  letter-spacing: -0.03em;
-  line-height: 1.0;
-}
-
-.dark-3d-heading-medium {
-  font-size: 2.5rem;
-  font-weight: 700;
-  color: #4a4a4a;
-  letter-spacing: -0.02em;
-  line-height: 1.1;
-}
-
-/* Logo styling for img element */
-.neurosoul-logo {
-  width: 60px;
-  height: 60px;
-  border-radius: 8px;
-  filter: drop-shadow(0 4px 8px rgba(212, 175, 55, 0.4));
-  transition: transform 0.3s ease;
-}
-
-.neurosoul-logo:hover {
-  transform: scale(1.05);
-}
-
-@keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
-}
-
-.floating {
-  animation: float 6s ease-in-out infinite;
-}
-
-@keyframes float {
-  0%, 100% { transform: translateY(0px); }
-  50% { transform: translateY(-20px); }
-}
-
-.pulse-gold {
-  animation: pulseGold 2s infinite;
-}
-
-@keyframes pulseGold {
-  0%, 100% { box-shadow: 0 0 20px rgba(255, 215, 0, 0.3); }
-  50% { box-shadow: 0 0 40px rgba(255, 215, 0, 0.6); }
-}
+  transform: translateY(-10px) rotateX
